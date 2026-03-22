@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLAIADES — Mission Control</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=VT323&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#03080a;--bg2:#050e12;--bg3:#071318;--panel:#040c10;
+  --border:#0d2f3a;
+  --neon:#00e5ff;--neon2:#39ff14;--neon3:#ff3c5a;--neon4:#ffb400;--neon5:#bf5fff;
+  --ndim:rgba(0,229,255,.07);--text:#b0dde8;--tdim:#2d6678;
+  --mono:'Share Tech Mono',monospace;--display:'Orbitron',monospace;--vt:'VT323',monospace;
+  --gn:0 0 7px #00e5ffaa,0 0 18px #00e5ff44;
+  --g2:0 0 7px #39ff14aa,0 0 18px #39ff1444;
+  --g3:0 0 7px #ff3c5aaa,0 0 18px #ff3c5a44;
+  --g4:0 0 7px #ffb400aa,0 0 18px #ffb40044;
+  --g5:0 0 7px #bf5fffaa,0 0 18px #bf5fff44;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.05) 2px,rgba(0,0,0,.05) 4px);pointer-events:none;z-index:9000;}
+body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 50% 50%,transparent 55%,rgba(0,0,0,.7) 100%);pointer-events:none;z-index:9001;}
+.hexbg{position:fixed;inset:0;z-index:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100'%3E%3Cpolygon points='28,2 54,16 54,84 28,98 2,84 2,16' fill='none' stroke='%230d2f3a' stroke-width='0.7'/%3E%3C/svg%3E");background-size:56px 100px;opacity:.5;}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+header{position:relative;z-index:100;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,rgba(0,229,255,.04),transparent);flex-shrink:0;}
+.logo{font-family:var(--display);font-weight:900;font-size:1.2rem;letter-spacing:6px;color:var(--neon);text-shadow:var(--gn);display:flex;align-items:center;gap:13px;}
+.logo-hex svg{animation:hexspin 14s linear infinite;}
+@keyframes hexspin{to{transform:rotate(360deg)}}
+.logo-sub{font-size:.5rem;color:var(--tdim);letter-spacing:3px;font-weight:400;display:block;margin-top:2px;}
+.hdr-r{display:flex;align-items:center;gap:18px;}
+.conn-pill{display:flex;align-items:center;gap:8px;font-size:.65rem;letter-spacing:2px;padding:5px 13px;border:1px solid var(--border);border-radius:2px;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--neon3);animation:blink .9s step-end infinite;}
+.dot.live{background:var(--neon2);box-shadow:var(--g2);animation:none;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.clock{font-family:var(--vt);font-size:1.5rem;color:var(--neon4);text-shadow:var(--g4);}
+.pid-badge{font-size:.58rem;color:var(--tdim);padding:4px 10px;border:1px solid var(--border);border-radius:2px;}
+.layout{position:relative;z-index:10;display:grid;grid-template-columns:252px 1fr 290px;height:calc(100vh - 56px);}
+.phdr{padding:11px 16px;font-family:var(--display);font-size:.56rem;letter-spacing:3px;color:var(--neon);text-shadow:var(--gn);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;flex-shrink:0;}
+.phdr::before{content:'';width:3px;height:11px;flex-shrink:0;background:var(--neon);box-shadow:var(--gn);border-radius:2px;}
+/* LEFT */
+.left{border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--panel);overflow:hidden;}
+.game-cards{flex:1;overflow-y:auto;padding:8px;}
+.gc{border:1px solid var(--border);border-radius:3px;padding:10px 12px;margin-bottom:7px;cursor:pointer;transition:border-color .2s,background .2s;position:relative;overflow:hidden;}
+.gc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--tdim);transition:background .3s,box-shadow .3s;}
+.gc:hover{border-color:rgba(0,229,255,.25);background:rgba(0,229,255,.02);}
+.gc.running{border-color:rgba(0,229,255,.35);background:rgba(0,229,255,.03);}
+.gc.running::before{background:var(--neon);box-shadow:var(--gn);}
+.gc.win::before{background:var(--neon2);box-shadow:var(--g2);}
+.gc.loss::before{background:var(--neon3);}
+.gc.tie::before{background:var(--neon5);}
+.gc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
+.gc-name{font-size:.73rem;color:var(--text);}
+.gc.running .gc-name{color:var(--neon);text-shadow:var(--gn);}
+.gc-badge{font-family:var(--display);font-size:.5rem;letter-spacing:1.5px;padding:2px 7px;border-radius:2px;border:1px solid;}
+.bi{color:var(--tdim);border-color:var(--border);}
+.br{color:var(--neon);border-color:var(--neon);box-shadow:var(--gn);animation:gpulse 1.5s ease-in-out infinite;}
+.bw{color:var(--neon2);border-color:var(--neon2);}
+.bl{color:var(--neon3);border-color:var(--neon3);}
+.bt{color:var(--neon5);border-color:var(--neon5);}
+@keyframes gpulse{0%,100%{box-shadow:var(--gn)}50%{box-shadow:0 0 14px #00e5ffcc,0 0 30px #00e5ff55}}
+.gc-nums{display:flex;gap:8px;font-size:.66rem;}
+.gw{color:var(--neon2);}.gl{color:var(--neon3);}.gt{color:var(--neon5);}.gsc{color:var(--neon4);}
+.gc-last{margin-top:5px;font-size:.6rem;color:var(--tdim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* Mini previews in sidebar */
+.ttt-mini{margin-top:7px;display:grid;grid-template-columns:repeat(3,1fr);gap:2px;}
+.tm{height:17px;display:flex;align-items:center;justify-content:center;font-family:var(--vt);font-size:.95rem;background:rgba(0,0,0,.4);border:1px solid var(--border);}
+.tm.x{color:var(--neon3);}.tm.o{color:var(--neon2);}
+.car-mini{margin-top:7px;display:flex;gap:3px;height:20px;}
+.car-lane{flex:1;background:rgba(0,0,0,.5);border:1px solid var(--border);position:relative;}
+.car-lane.active{border-color:var(--neon4);background:rgba(255,180,0,.1);}
+.car-marker{width:4px;height:4px;border-radius:50%;background:var(--neon4);position:absolute;bottom:3px;left:50%;transform:translateX(-50%);box-shadow:var(--g4);}
+.maze-mini{margin-top:6px;font-family:var(--vt);font-size:.6rem;line-height:1.1;color:var(--tdim);overflow:hidden;max-height:36px;letter-spacing:1px;}
+.left-actions{padding:12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:7px;flex-shrink:0;}
+.btn{font-family:var(--display);font-size:.56rem;letter-spacing:2px;text-transform:uppercase;padding:10px;border:1px solid;border-radius:3px;cursor:pointer;background:transparent;transition:all .18s;text-align:center;}
+.btn-start{color:var(--neon2);border-color:var(--neon2);box-shadow:var(--g2);}
+.btn-start:hover:not(:disabled){background:rgba(57,255,20,.1);}
+.btn-stop{color:var(--neon3);border-color:var(--neon3);}
+.btn-stop:hover:not(:disabled){background:rgba(255,60,90,.1);}
+.btn:disabled{opacity:.3;cursor:not-allowed;box-shadow:none!important;}
+/* CENTER */
+.center{display:flex;flex-direction:column;overflow:hidden;}
+.tabs{display:flex;overflow-x:auto;flex-shrink:0;border-bottom:1px solid var(--border);background:var(--bg2);}
+.tabs::-webkit-scrollbar{height:2px;}
+.tab{padding:9px 16px;font-size:.65rem;color:var(--tdim);cursor:pointer;white-space:nowrap;border-right:1px solid var(--border);border-bottom:2px solid transparent;margin-bottom:-1px;display:flex;align-items:center;gap:7px;transition:all .15s;}
+.tab:hover{color:var(--text);background:var(--ndim);}
+.tab.active{color:var(--neon);text-shadow:var(--gn);border-bottom-color:var(--neon);background:var(--bg3);}
+.tab-pip{width:5px;height:5px;border-radius:50%;background:var(--tdim);flex-shrink:0;}
+.tab.active .tab-pip{background:var(--neon);box-shadow:var(--gn);animation:pip 1.5s ease-in-out infinite;}
+@keyframes pip{0%,100%{transform:scale(1)}50%{transform:scale(1.8)}}
+.viewport{flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;position:relative;}
+.vp-empty{text-align:center;pointer-events:none;user-select:none;align-self:center;}
+.vp-empty .ascii{font-family:var(--vt);font-size:4.5rem;color:var(--border);line-height:1;display:block;margin-bottom:14px;}
+.vp-empty p{font-size:.7rem;letter-spacing:3px;color:var(--tdim);}
+/* Game view */
+.gview{display:flex;flex-direction:column;align-items:center;width:100%;padding:14px;gap:10px;}
+.game-bar{display:flex;gap:7px;align-items:center;flex-wrap:wrap;width:100%;}
+.chip{display:flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid var(--border);border-radius:2px;background:var(--bg2);font-size:.67rem;}
+.chip strong{color:var(--neon);text-shadow:var(--gn);}
+/* Canvas wrapper */
+.canvas-shell{position:relative;border:1px solid var(--border);border-radius:6px;overflow:hidden;max-width:100%;}
+.canvas-shell canvas{display:block;max-width:100%;height:auto;}
+.canvas-shell.live::after{content:'LIVE';position:absolute;top:8px;right:10px;font-family:var(--display);font-size:.5rem;letter-spacing:2px;color:var(--neon2);border:1px solid var(--neon2);padding:2px 7px;border-radius:2px;box-shadow:var(--g2);animation:gpulse 1.5s ease-in-out infinite;}
+.game-stats-strip{display:flex;gap:12px;flex-wrap:wrap;font-size:.68rem;color:var(--tdim);padding:6px 12px;border:1px solid var(--border);border-radius:3px;background:var(--bg2);width:100%;max-width:640px;}
+.game-stats-strip strong{color:var(--neon4);}
+/* Overview */
+.overview-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px;padding:16px;width:100%;align-content:start;}
+.ov-card{border:1px solid var(--border);background:var(--bg2);padding:12px;border-radius:3px;cursor:pointer;transition:all .18s;}
+.ov-card:hover{border-color:var(--neon);box-shadow:0 0 10px rgba(0,229,255,.07);}
+.ov-icon{font-size:1.5rem;margin-bottom:7px;}
+.ov-name{font-family:var(--display);font-size:.54rem;letter-spacing:2px;color:var(--neon);}
+.ov-nums{display:flex;justify-content:space-between;margin-top:7px;font-size:.62rem;}
+.ov-bar{margin-top:7px;height:3px;background:var(--border);border-radius:2px;}
+.ov-fill{height:100%;border-radius:2px;background:var(--neon2);box-shadow:var(--g2);transition:width .4s;}
+/* Console */
+.console-wrap{border-top:1px solid var(--border);height:195px;display:flex;flex-direction:column;flex-shrink:0;background:var(--bg2);}
+.console-body{flex:1;overflow-y:auto;padding:7px 13px;font-size:.67rem;line-height:1.75;}
+.lr{display:flex;gap:8px;}
+.lts{color:var(--tdim);flex-shrink:0;min-width:65px;}
+.lgid{flex-shrink:0;min-width:56px;}
+.ltxt{word-break:break-all;flex:1;}
+.t-info .ltxt{color:var(--text);}
+.t-new .ltxt{color:var(--neon);text-shadow:0 0 5px rgba(0,229,255,.3);}
+.t-win .ltxt{color:var(--neon2);}
+.t-loss .ltxt{color:var(--neon3);}
+.t-tie .ltxt{color:var(--neon5);}
+.t-total .ltxt{color:var(--neon4);}
+.t-move .ltxt{color:var(--tdim);}
+.t-err .ltxt{color:var(--neon3);font-style:italic;}
+.t-sys .ltxt{color:var(--tdim);font-style:italic;}
+.t-board .ltxt{color:var(--text);font-family:var(--vt);font-size:.9rem;white-space:pre;}
+.console-in-row{display:flex;align-items:center;gap:7px;border-top:1px solid var(--border);height:32px;padding:0 13px;flex-shrink:0;}
+.caret{color:var(--neon);font-size:.7rem;}
+.cin{flex:1;background:none;border:none;outline:none;color:var(--text);font-family:var(--mono);font-size:.66rem;caret-color:var(--neon);}
+/* RIGHT */
+.right{border-left:1px solid var(--border);background:var(--panel);overflow-y:auto;display:flex;flex-direction:column;}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:10px;}
+.sc{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:10px 9px;position:relative;overflow:hidden;}
+.sc::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;}
+.c-cy::after{background:var(--neon);box-shadow:var(--gn);}
+.c-gn::after{background:var(--neon2);box-shadow:var(--g2);}
+.c-rd::after{background:var(--neon3);box-shadow:var(--g3);}
+.c-yl::after{background:var(--neon4);box-shadow:var(--g4);}
+.c-pu::after{background:var(--neon5);box-shadow:var(--g5);}
+.span2{grid-column:span 2;}
+.sc-lbl{font-family:var(--display);font-size:.5rem;letter-spacing:2px;color:var(--tdim);margin-bottom:3px;}
+.sc-val{font-family:var(--vt);font-size:1.9rem;line-height:1;}
+.c-cy .sc-val{color:var(--neon);text-shadow:var(--gn);}
+.c-gn .sc-val{color:var(--neon2);text-shadow:var(--g2);}
+.c-rd .sc-val{color:var(--neon3);}
+.c-yl .sc-val{color:var(--neon4);}
+.c-pu .sc-val{color:var(--neon5);}
+.sc-sub{font-size:.58rem;color:var(--tdim);margin-top:2px;}
+.wr-section{padding:0 10px 10px;}
+.wr-label{display:flex;justify-content:space-between;font-size:.6rem;color:var(--tdim);margin-bottom:5px;}
+.wr-label span{color:var(--neon2);}
+.wr-bar{height:5px;background:var(--border);border-radius:3px;overflow:hidden;}
+.wr-fill{height:100%;background:linear-gradient(90deg,var(--neon2),var(--neon));box-shadow:var(--g2);border-radius:3px;transition:width .5s ease;}
+.spark-section{padding:0 10px 10px;}
+canvas#spark{width:100%;height:56px;display:block;}
+.pgt{padding:0 10px 10px;}
+.pgt-head{display:grid;grid-template-columns:1fr 24px 24px 24px 42px;gap:3px;font-size:.54rem;color:var(--tdim);letter-spacing:1px;padding-bottom:4px;border-bottom:1px solid var(--border);margin-bottom:3px;font-family:var(--display);}
+.pgt-row{display:grid;grid-template-columns:1fr 24px 24px 24px 42px;gap:3px;padding:4px 0;border-bottom:1px solid rgba(13,47,58,.5);font-size:.65rem;align-items:center;}
+.pgt-name{color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pw{color:var(--neon2);text-align:right;}.pl{color:var(--neon3);text-align:right;}.pt{color:var(--neon5);text-align:right;}.ps{color:var(--neon4);text-align:right;}
+.score-note{padding:8px 10px 10px;font-size:.58rem;color:var(--tdim);line-height:1.55;border-top:1px solid var(--border);}
+.score-note strong{color:var(--neon4);}
+/* ── Manual play panels ── */
+.manual-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;padding:16px;overflow-y:auto;}
+.manual-section-title{font-family:var(--display);font-size:.62rem;letter-spacing:3px;color:var(--neon);text-shadow:var(--gn);display:flex;align-items:center;gap:10px;width:100%;max-width:520px;}
+.manual-section-title::before,.manual-section-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.m-status{font-size:.68rem;color:var(--tdim);text-align:center;min-height:18px;letter-spacing:1px;}
+.m-status .s-idle{color:var(--tdim);} .m-status .s-run{color:var(--neon);} .m-status .s-win{color:var(--neon2);} .m-status .s-lose{color:var(--neon3);}
+.m-score{font-family:var(--vt);font-size:2rem;color:var(--neon4);text-shadow:var(--g4);}
+.m-btn-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+.m-btn{font-family:var(--display);font-size:.55rem;letter-spacing:2px;padding:9px 18px;border:1px solid;border-radius:3px;cursor:pointer;background:transparent;transition:all .15s;text-align:center;}
+.m-btn-new{color:var(--neon2);border-color:var(--neon2);}
+.m-btn-new:hover{background:rgba(57,255,20,.1);box-shadow:var(--g2);}
+.m-btn-stop{color:var(--neon3);border-color:var(--neon3);}
+.m-btn-stop:hover{background:rgba(255,60,90,.1);}
+.m-btn:disabled{opacity:.3;cursor:not-allowed;}
+.key-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;width:58px;height:58px;border:1px solid var(--border);border-radius:5px;background:var(--bg2);cursor:pointer;transition:all .12s;font-family:var(--display);font-size:.48rem;letter-spacing:1px;color:var(--tdim);user-select:none;-webkit-user-select:none;}
+.key-btn:hover{border-color:var(--neon);color:var(--neon);box-shadow:var(--gn);}
+.key-btn.pressed{border-color:var(--neon2);background:rgba(57,255,20,.15);color:var(--neon2);box-shadow:var(--g2);transform:scale(.93);}
+.key-glyph{font-size:1.4rem;line-height:1;}
+.dpad{display:grid;grid-template-columns:repeat(3,58px);grid-template-rows:repeat(3,58px);gap:5px;}
+.dpad-center{grid-column:2;grid-row:2;}
+.lander-grid{display:grid;grid-template-columns:repeat(3,68px);gap:7px;}
+.cooldown-dot{width:8px;height:8px;border-radius:50%;background:var(--neon2);box-shadow:var(--g2);transition:background .1s,box-shadow .1s;flex-shrink:0;}
+.cooldown-dot.busy{background:var(--neon3);box-shadow:var(--g3);animation:blink .4s step-end infinite;}
+.m-keylabel{font-size:.55rem;color:var(--tdim);letter-spacing:1px;margin-top:2px;}
+#toast-wrap{position:fixed;top:66px;right:14px;z-index:9999;display:flex;flex-direction:column;gap:7px;}
+.toast{background:var(--bg3);border:1px solid var(--neon);box-shadow:var(--gn);padding:8px 14px;border-radius:3px;font-size:.68rem;color:var(--neon);animation:tin .3s ease,tout .4s ease 2.6s forwards;max-width:250px;}
+.toast.err{border-color:var(--neon3);color:var(--neon3);box-shadow:var(--g3);}
+.toast.warn{border-color:var(--neon4);color:var(--neon4);box-shadow:var(--g4);}
+@keyframes tin{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes tout{to{transform:translateX(30px);opacity:0}}
+@keyframes bumpin{from{transform:scale(1.1);opacity:.7}to{transform:scale(1);opacity:1}}
+</style>
+</head>
+<body>
+<div class="hexbg"></div>
+<div id="toast-wrap"></div>
+
+<header>
+  <div class="logo">
+    <div class="logo-hex">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+        <polygon points="16,2 30,9 30,23 16,30 2,23 2,9" stroke="#00e5ff" stroke-width="1.5" fill="rgba(0,229,255,.04)"/>
+        <circle cx="16" cy="16" r="4" fill="#00e5ff" style="filter:drop-shadow(0 0 4px #00e5ff)"/>
+      </svg>
+    </div>
+    PLAIADES
+    <span class="logo-sub">MISSION CONTROL</span>
+  </div>
+  <div class="hdr-r">
+    <div class="conn-pill"><div class="dot" id="conn-dot"></div><span id="conn-lbl">OFFLINE</span></div>
+    <div class="pid-badge" id="pid-badge">PID —</div>
+    <div class="clock" id="clock">--:--:--</div>
+  </div>
+</header>
+
+<div class="layout">
+<div class="left">
+  <div class="phdr">GAME STATUS</div>
+  <div class="game-cards" id="game-cards"></div>
+  <div class="left-actions">
+    <button class="btn btn-start" id="btn-launch" onclick="launchScript()">▶  LAUNCH MAIN.PY</button>
+    <button class="btn btn-stop"  id="btn-kill"   onclick="killScript()" disabled>■  STOP ALL</button>
+  </div>
+</div>
+
+<div class="center">
+  <div class="tabs" id="tabs">
+    <div class="tab active" data-tab="overview" onclick="switchTab('overview')">
+      <span class="tab-pip" style="background:var(--neon);box-shadow:var(--gn)"></span>OVERVIEW
+    </div>
+  </div>
+  <div class="viewport" id="viewport">
+    <div class="vp-empty">
+      <span class="ascii">⬡</span>
+      <p>LAUNCH MAIN.PY TO BEGIN</p>
+      <p style="margin-top:8px;font-size:.58rem;color:var(--border);">awaiting signal...</p>
+    </div>
+  </div>
+  <div class="console-wrap">
+    <div class="phdr">CONSOLE — STDOUT / STDERR</div>
+    <div class="console-body" id="console-body"></div>
+    <div class="console-in-row">
+      <span class="caret">&gt;_</span>
+      <input class="cin" id="cin" placeholder="clear / stats / kill" onkeydown="handleCmd(event)">
+    </div>
+  </div>
+</div>
+
+<div class="right">
+  <div class="phdr">LIVE STATS</div>
+  <div class="stats-grid">
+    <div class="sc c-gn"><div class="sc-lbl">WINS</div><div class="sc-val" id="s-wins">0</div><div class="sc-sub">total</div></div>
+    <div class="sc c-rd"><div class="sc-lbl">LOSSES</div><div class="sc-val" id="s-loss">0</div><div class="sc-sub">total</div></div>
+    <div class="sc c-pu"><div class="sc-lbl">TIES</div><div class="sc-val" id="s-ties">0</div><div class="sc-sub">total</div></div>
+    <div class="sc c-yl"><div class="sc-lbl">GAMES</div><div class="sc-val" id="s-games">0</div><div class="sc-sub">played</div></div>
+    <div class="sc c-cy span2"><div class="sc-lbl">TOTAL SCORE</div><div class="sc-val" id="s-score" style="font-size:2.2rem">0</div><div class="sc-sub">sum of session Score: +N</div></div>
+  </div>
+  <div class="wr-section">
+    <div class="wr-label">WIN RATE <span id="wr-pct">0%</span></div>
+    <div class="wr-bar"><div class="wr-fill" id="wr-fill" style="width:0%"></div></div>
+  </div>
+  <div class="spark-section">
+    <div class="phdr" style="padding:0;margin-bottom:7px;border:none;font-size:.53rem;">SCORE PER SESSION</div>
+    <canvas id="spark"></canvas>
+  </div>
+  <div class="pgt">
+    <div class="phdr" style="padding:0;margin-bottom:7px;border:none;font-size:.53rem;">PER GAME BREAKDOWN</div>
+    <div class="pgt-head"><div>GAME</div><div>W</div><div>L</div><div>T</div><div>SCORE</div></div>
+    <div id="pgt-body"></div>
+  </div>
+  <div class="score-note">
+    <strong>Score:</strong> taken from <code>Score: +N</code> in Totals lines. G1 W/T=+1 L=−1 / G2 W=+2 / G3 W=+3 / G4 W=+4 / G5 W=+6–7 L=−2 / G6 W=+7 / G7 W=+8 / G8 W=+9 / G9 W=+10 / G10 W=+10–11 L=−2. <strong>Zero extra API calls made by this dashboard.</strong>
+  </div>
+</div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   GAME METADATA
+═══════════════════════════════════════════════════════════════ */
+const GAMES = {
+  1:{name:'Tic-Tac-Toe',icon:'⊞'},
+  2:{name:'Car Racing',icon:'▶'},
+  3:{name:'Snake',icon:'◈',manual:true},          // manual play only
+  4:{name:'Rush Hour',icon:'⊟'},
+  5:{name:'Adaptive Traffic',icon:'⊠'},
+  6:{name:'Partial Viz Maze',icon:'◫'},
+  7:{name:'Lava Maze',icon:'◬'},
+  8:{name:'Key Door Maze',icon:'◳'},
+  9:{name:'Lava+Key Maze',icon:'◰'},
+  10:{name:'Moon Lander',icon:'◭',manual:true},    // manual play only
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   APP STATE — everything reconstructed from log lines only.
+   Zero /get_state/ calls are made by this dashboard.
+═══════════════════════════════════════════════════════════════ */
+const gs = {};         // per-game metadata + reconstructed state
+const totals = {wins:0,losses:0,ties:0,score:0,games:0};
+const scoreHistory = [];
+let currentTab = 'overview', sse = null, running = false;
+
+// Per-game reconstructed state objects fed to canvas renderers
+const liveState = {};
+
+// G1: TTT board row accumulator
+const tttBuf = {};
+
+for(const id of Object.keys(GAMES)){
+  gs[id] = {wins:0,losses:0,ties:0,score:0,last:'',status:'idle',gameNum:0,session:''};
+  // Seed empty state for each game type
+  liveState[id] = buildEmptyState(Number(id));
+}
+
+function buildEmptyState(gid){
+  if(gid===1) return {board:[['','',''],['','',''],['','','']],current_player:'X',status:'playing'};
+  if(gid===2) return {position:0,lane:1,upcoming_obstacles:[]};
+  if(gid===3) return {snake:[[10,10]],food:[5,5],score:0};
+  if(gid===4) return {grid_size:6,vehicles:[],exit_pos:[2,6],steps:0};
+  if(gid===5) return {lane:1,speed:1,progress:0,track_length:100,step:0,max_steps:200,nearby_vehicles:[],lane_gaps:[],sensor_window:[],last_action:'keep'};
+  if(gid>=6&&gid<=9) return {grid:[],player_pos:[0,0],has_key:false,steps:0};
+  if(gid===10) return {position:{x:50,altitude:50},velocity:{vx:0,vy:0},tilt:0,fuel:100,landing_pad:{x1:40,x2:60},world_bounds:{width:100,height:80}};
+  return {};
+}
+
+buildGameCards();
+setInterval(tickClock, 1000);
+tickClock();
+// Always show manual game tabs
+ensureTab(3);
+ensureTab(10);
+function tickClock(){ document.getElementById('clock').textContent = new Date().toTimeString().slice(0,8); }
+
+/* ═══════════════════════════════════════════════════════════════
+   SIDEBAR CARDS
+═══════════════════════════════════════════════════════════════ */
+function buildGameCards(){
+  const el=document.getElementById('game-cards'); el.innerHTML='';
+  for(const [id,meta] of Object.entries(GAMES)){
+    const d=document.createElement('div');
+    d.className='gc'; d.id=`gc-${id}`; d.onclick=()=>switchTab(id);
+    const isManual = meta.manual;
+    const badgeLabel = isManual ? 'MANUAL' : 'IDLE';
+    const badgeClass = isManual ? 'gc-badge' : 'gc-badge bi';
+    const badgeStyle = isManual ? 'style="color:var(--neon5);border-color:var(--neon5);border:1px solid;"' : '';
+    d.innerHTML=`<div class="gc-top"><span class="gc-name">${meta.icon} ${meta.name}</span><span class="${badgeClass}" id="badge-${id}" ${badgeStyle}>${badgeLabel}</span></div>
+    <div class="gc-nums"><span class="gw">W:<span id="gw-${id}">0</span></span><span class="gl">L:<span id="gl-${id}">0</span></span><span class="gt">T:<span id="gt-${id}">0</span></span><span class="gsc">+<span id="gsc-${id}">0</span></span></div>
+    <div class="gc-last" id="glast-${id}">—</div><div id="gpreview-${id}"></div>`;
+    el.appendChild(d);
+  }
+}
+
+function updateCard(id){
+  const g=gs[id]; if(!g) return;
+  const card=document.getElementById(`gc-${id}`); if(!card) return;
+  card.className='gc '+(g.status==='running'?'running':g.status==='win'?'win':g.status==='loss'?'loss':g.status==='tie'?'tie':'');
+  const badge=document.getElementById(`badge-${id}`);
+  const bmap={idle:'bi IDLE',running:'br LIVE',win:'bw WIN',loss:'bl LOSS',tie:'bt TIE'};
+  const [bc,bt]=(bmap[g.status]||'bi IDLE').split(' ');
+  badge.className=`gc-badge ${bc}`; badge.textContent=bt;
+  document.getElementById(`gw-${id}`).textContent=g.wins;
+  document.getElementById(`gl-${id}`).textContent=g.losses;
+  document.getElementById(`gt-${id}`).textContent=g.ties;
+  document.getElementById(`gsc-${id}`).textContent=g.score;
+  document.getElementById(`glast-${id}`).textContent=g.last||'—';
+  updateMiniPreview(id);
+}
+
+function updateMiniPreview(id){
+  const el=document.getElementById(`gpreview-${id}`); if(!el) return;
+  const gid=Number(id), st=liveState[id];
+  if(gid===1 && st.board){
+    let h='<div class="ttt-mini">';
+    for(let r=0;r<3;r++) for(let c=0;c<3;c++){
+      const v=st.board[r][c]||'';
+      h+=`<div class="tm ${v==='X'?'x':v==='O'?'o':''}">${v}</div>`;
+    }
+    el.innerHTML=h+'</div>';
+  } else if((gid===2||gid===5) && st.lane!==undefined){
+    let h='<div class="car-mini">';
+    for(let l=0;l<3;l++) h+=`<div class="car-lane${l===st.lane?' active':''}">${l===st.lane?'<div class="car-marker"></div>':''}</div>`;
+    el.innerHTML=h+'</div>';
+  } else if(gid>=6&&gid<=9 && st.grid && st.grid.length>0){
+    const preview=st.grid.slice(0,5).map(r=>Array.isArray(r)?r.join(''):r).join('\n');
+    el.innerHTML=`<div class="maze-mini">${escHtml(preview)}</div>`;
+  } else { el.innerHTML=''; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CONSOLE
+═══════════════════════════════════════════════════════════════ */
+const MAX_LOG=600;
+function clog(gameId,msg,type='info'){
+  const body=document.getElementById('console-body');
+  const r=document.createElement('div'); r.className=`lr t-${type}`;
+  const ts=new Date().toTimeString().slice(0,8);
+  const gid=gameId?`<span class="lgid" style="color:${gcol(gameId)};">[G${gameId}]</span>`:`<span class="lgid" style="color:var(--tdim);">[SYS]</span>`;
+  r.innerHTML=`<span class="lts">${ts}</span>${gid}<span class="ltxt">${escHtml(msg)}</span>`;
+  body.appendChild(r);
+  while(body.children.length>MAX_LOG) body.removeChild(body.firstChild);
+  body.scrollTop=body.scrollHeight;
+}
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+const GCOLS=['#00e5ff','#39ff14','#ffb400','#ff3c5a','#bf5fff','#00e5ff','#39ff14','#ffb400','#ff3c5a','#bf5fff'];
+function gcol(id){ return GCOLS[(Number(id)-1)%GCOLS.length]; }
+function handleCmd(e){
+  if(e.key!=='Enter') return;
+  const v=e.target.value.trim(); e.target.value=''; if(!v) return;
+  clog(null,`> ${v}`,'sys');
+  if(v==='clear'){document.getElementById('console-body').innerHTML='';return;}
+  if(v==='stats'){clog(null,`W:${totals.wins} L:${totals.losses} T:${totals.ties} Score:${totals.score}`,'total');return;}
+  if(v==='kill'){killScript();return;}
+  clog(null,`Unknown: ${v}. Try: clear | stats | kill`,'err');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LOG PARSER
+   Reconstructs full state objects from stdout lines only.
+   NO API calls are made here.
+═══════════════════════════════════════════════════════════════ */
+function parseLine(raw){
+  const line=raw.trim(); if(!line) return;
+
+  /* ══════════════════════════════════════════════════════════════
+     FAST PATH — STATE_JSON: lines emitted by the Python agents.
+     Format: [game-N] STATE_JSON:{...json...}
+     These carry the full structured state for the canvas renderers.
+     Silently merged into liveState — NOT echoed to the console.
+  ══════════════════════════════════════════════════════════════ */
+  const sjM = line.match(/^\[game-(\d+)\]\s*STATE_JSON:(\{[\s\S]+\})\s*$/);
+  if(sjM){
+    const id = sjM[1];
+    try{
+      const state = JSON.parse(sjM[2]);
+      // Deep-merge so we don't lose keys from a previous state
+      if(!liveState[id]) liveState[id] = buildEmptyState(Number(id));
+      Object.assign(liveState[id], state);
+      // Keep the move log buffer alive for Rush Hour
+      if(Number(id)===4 && !liveState[id]._moveLog) liveState[id]._moveLog=[];
+      updateCard(id);
+      if(currentTab===id) redrawCanvas(id);
+      else if(currentTab==='overview') renderOverview();
+      // Update manual score display for G3 / G10
+      if(id==='3' || id==='10'){
+        const sc = state.score ?? state.points ?? liveState[id].score ?? 0;
+        const scoreEl = document.getElementById(`m${id}-score`);
+        if(scoreEl) scoreEl.textContent = sc;
+        manual[Number(id)].score = sc;
+      }
+    }catch(e){ /* malformed — ignore silently */ }
+    return; // never fall through; STATE_JSON lines are not console-logged
+  }
+
+  /* ── Standard [game-N] prefix ─────────────────────────────── */
+  const m = line.match(/^\[game-(\d+)\]\s*(.*)/s);
+  if(!m){ clog(null, line, 'sys'); return; }
+  const id=m[1], body=m[2].trim(), g=gs[id];
+  if(!g){ clog(id, body, 'info'); return; }
+  const gid=Number(id);
+  ensureTab(id);
+  const st=liveState[id];
+
+  /* ── Result ─────────────────────────────────────────────────── */
+  const resM=body.match(/^Result:\s*(WIN|LOSS|TIE|DRAW)/i);
+  if(resM){
+    const r=resM[1].toUpperCase();
+    if(r==='WIN'){g.wins++;totals.wins++;g.status='win';}
+    else if(r==='LOSS'){g.losses++;totals.losses++;g.status='loss';}
+    else{g.ties++;totals.ties++;g.status='tie';}
+    totals.games++;
+    clog(id, body, r==='WIN'?'win':r==='LOSS'?'loss':'tie');
+    updateCard(id); updateStats();
+    if(currentTab==='overview') renderOverview();
+    // Update manual play W/L counters for G3 / G10
+    if((id==='3'||id==='10') && manual[Number(id)]){
+      const m=manual[Number(id)];
+      const gid=Number(id);
+      if(r==='WIN') m.wins++;
+      else if(r==='LOSS'||r==='LOSE') m.losses++;
+      const wEl=document.getElementById(`m${gid}-wins`);
+      const lEl=document.getElementById(`m${gid}-losses`);
+      const tEl=document.getElementById(`m${gid}-tscore`);
+      if(wEl) wEl.textContent=m.wins;
+      if(lEl) lEl.textContent=m.losses;
+      // Compute total score contribution
+      const pts=r==='WIN'?(gid===3?3:10):r==='LOSS'||r==='LOSE'?(gid===3?-1:-2):0;
+      m.totalScore=(m.totalScore||0)+pts;
+      if(tEl) tEl.textContent=m.totalScore;
+      // If game ended, re-enable the "NEW GAME" button
+      const newBtn=document.getElementById(`m${gid}-new`);
+      const stopBtn=document.getElementById(`m${gid}-stop`);
+      if(newBtn) newBtn.disabled=false;
+      if(stopBtn) stopBtn.disabled=true;
+      m.status='done'; m.sid=null;
+      const cls=r==='WIN'?'s-win':r==='LOSS'||r==='LOSE'?'s-lose':'s-idle';
+      setManualStatus(gid,`<span class="${cls}">${r} — press NEW GAME</span>`);
+    }
+    return;
+  }
+
+  /* ── Totals line — Score: +N is the authoritative per-session score ── */
+  const totM=body.match(/Totals.*Score:\s*([+-]?\d+)/i);
+  if(totM){
+    const pts=parseInt(totM[1],10);
+    g.score+=pts; totals.score+=pts;
+    scoreHistory.push({id, pts});
+    if(scoreHistory.length>50) scoreHistory.shift();
+    g.last=body;
+    clog(id, body, 'total'); updateCard(id); updateStats(); updateSparkline();
+    return;
+  }
+
+  /* ── New game / Session ─────────────────────────────────────── */
+  if(/^===\s*New game|^---\s*Game #|^Session\s+\d+/.test(body)){
+    g.status='running';
+    const gn=body.match(/Game #(\d+)/); if(gn) g.gameNum=parseInt(gn[1]);
+    const sn=body.match(/Session\s+(\d+)/); if(sn) g.session=sn[1];
+    liveState[id]=buildEmptyState(gid); // reset canvas state for new session
+    clog(id, body, 'new'); updateCard(id);
+    if(currentTab==='overview') renderOverview();
+    return;
+  }
+
+  /* ── API error ──────────────────────────────────────────────── */
+  if(/\[API error\]|\[ERROR\]/i.test(body)){
+    clog(id, body, 'err'); g.last=body; updateCard(id); return;
+  }
+
+  /* ── G1 TTT: board lines (`. | X | O`) kept as visual fallback ─ */
+  if(gid===1 && /^[XO.\s|]+$/.test(body) && body.includes('|')){
+    if(!tttBuf[id]) tttBuf[id]=[];
+    tttBuf[id].push(body.split('|').map(c=>c.trim()));
+    if(tttBuf[id].length===3){
+      // Only use text board if STATE_JSON hasn't populated a proper board yet
+      if(!st.board || st.board.every(r=>r.every(c=>c===''))) {
+        st.board=tttBuf[id].map(row=>row.map(c=>c==='.'?'':c));
+        if(currentTab===id) redrawCanvas(id);
+      }
+      tttBuf[id]=[];
+      updateCard(id);
+    }
+    clog(id, body, 'board'); return;
+  }
+
+  /* ── Classify and log remaining human-readable lines ──────────
+     These are displayed in the console only — state is already
+     handled by STATE_JSON above.
+  ─────────────────────────────────────────────────────────────── */
+  // Move/action lines
+  if(/^pos=|^lane=|→|^move_/.test(body)){
+    g.last=body; updateCard(id); clog(id, body, 'move'); return;
+  }
+  // Rush Hour solver lines
+  if(/^Solving\.\.\.|^Solution found:|^\[\d+\/\d+\]/.test(body)){
+    // Track move log for Rush Hour sidebar display (fallback when no STATE_JSON)
+    if(gid===4){
+      const solM=body.match(/Solution found:\s*(\d+)\s*moves/i);
+      if(solM){ st._solutionMoves=parseInt(solM[1]); }
+      const rhM=body.match(/^\[(\d+)\/(\d+)\]\s+(.+)/);
+      if(rhM){
+        st.steps=parseInt(rhM[1]);
+        if(!st._moveLog) st._moveLog=[];
+        st._moveLog.push({step:st.steps, total:parseInt(rhM[2]), move:rhM[3]});
+        if(st._moveLog.length>30) st._moveLog.shift();
+      }
+    }
+    g.last=body; updateCard(id); clog(id, body, 'move'); return;
+  }
+  // Info/status lines
+  clog(id, body, 'info'); g.last=body; updateCard(id);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CANVAS REDRAW — routes to the correct renderer
+═══════════════════════════════════════════════════════════════ */
+function redrawCanvas(id){
+  const container=document.getElementById(`gview-${id}`); if(!container) return;
+  const gid=Number(id), st=liveState[id];
+  if(gid===1)        renderTicTacToe_impl(st,container);
+  else if(gid===2)   renderCarRacing_impl(st,container);
+  else if(gid===3)   renderSnake_impl(st,container);
+  else if(gid===4)   renderRushHour_impl(st,container);
+  else if(gid===5)   renderAdaptiveTrafficRacing_impl(st,container);
+  else if(gid>=6&&gid<=9) renderMaze_impl(st,container);
+  else if(gid===10)  renderMoonLander_impl(st,container);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   OFFICIAL RENDERERS — ported 1:1 from games_render.js
+   Canvas IDs and state fields are identical to the original.
+═══════════════════════════════════════════════════════════════ */
+
+/* G1 */
+function renderTicTacToe_impl(state, container){
+  const boardDiv=container.querySelector('#game-board'); if(!boardDiv) return;
+  const board=state.board||[['','',''],['','',''],['','','']];
+  let html='';
+  for(let i=0;i<3;i++){
+    html+='<div style="display:flex;">';
+    for(let j=0;j<3;j++){
+      const cell=board[i][j]||'&nbsp;';
+      const colr=board[i][j]==='X'?'#ff3c5a':board[i][j]==='O'?'#39ff14':'#b0dde8';
+      const br=j<2?'border-right:2px solid #0d3a20;':'';
+      const bb=i<2?'border-bottom:2px solid #0d3a20;':'';
+      html+=`<div style="width:66px;height:66px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:bold;font-family:'VT323',monospace;color:${colr};${br}${bb}">${cell}</div>`;
+    }
+    html+='</div>';
+  }
+  boardDiv.innerHTML=html;
+  const strip=container.querySelector('#ttt-stats-strip');
+  if(strip) strip.innerHTML=`Current player: <strong>${state.current_player||'?'}</strong> &nbsp; Status: <strong>${state.status||'playing'}</strong>`;
+}
+
+/* G2 */
+function renderCarRacing_impl(state, container){
+  const canvas=container.querySelector('#car-racing-canvas'); if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle='#4CAF50'; ctx.fillRect(0,0,75,400); ctx.fillRect(525,0,75,400);
+  ctx.fillStyle='#666666'; ctx.fillRect(75,0,450,400);
+  ctx.strokeStyle='#FFFFFF'; ctx.lineWidth=4; ctx.setLineDash([10,10]);
+  for(let i=1;i<3;i++){ ctx.beginPath(); ctx.moveTo(75+i*150,0); ctx.lineTo(75+i*150,400); ctx.stroke(); }
+  ctx.setLineDash([]);
+  ctx.strokeStyle='#000'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(75,0); ctx.lineTo(75,400); ctx.moveTo(525,0); ctx.lineTo(525,400); ctx.stroke();
+  (state.upcoming_obstacles||[]).forEach(obs=>{
+    const y=345-(obs.step-state.position)*15;
+    const laneLeft=75+obs.lane*150, obsWidth=75, obsX=laneLeft+(150-obsWidth)/2, obsHeight=7.5;
+    if(y>0&&y<400){
+      ctx.fillStyle='#8B0000'; ctx.fillRect(obsX,y,obsWidth,obsHeight);
+      ctx.fillStyle='#FFFF00'; for(let i=0;i<obsWidth;i+=20) ctx.fillRect(obsX+i,y,10,obsHeight);
+    }
+  });
+  const laneCenter=150+state.lane*150, carX=laneCenter-15;
+  ctx.fillStyle='#0000FF'; ctx.fillRect(carX,350,30,15);
+  ctx.fillStyle='#87CEEB'; ctx.fillRect(carX+5,345,20,8);
+  ctx.fillStyle='#000'; ctx.fillRect(carX+2,362,6,3); ctx.fillRect(carX+22,362,6,3);
+  ctx.fillStyle='black'; ctx.font='16px Arial'; ctx.fillText('Position: '+state.position,10,20);
+  const strip=container.querySelector('#car-stats-strip');
+  if(strip) strip.innerHTML=`Position: <strong>${state.position||0}</strong>/100 &nbsp; Lane: <strong>${state.lane}</strong> &nbsp; Obstacles ahead: <strong>${(state.upcoming_obstacles||[]).length}</strong>`;
+}
+
+/* G3 */
+function renderSnake_impl(state, container){
+  const canvas=container.querySelector('#snake-canvas'); if(!canvas) return;
+  const ctx=canvas.getContext('2d'), cellSize=20, boardSize=20;
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle='#333'; ctx.lineWidth=1;
+  for(let i=0;i<=boardSize;i++){
+    ctx.beginPath(); ctx.moveTo(i*cellSize,0); ctx.lineTo(i*cellSize,boardSize*cellSize); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,i*cellSize); ctx.lineTo(boardSize*cellSize,i*cellSize); ctx.stroke();
+  }
+  ctx.fillStyle='#0f0';
+  (state.snake||[]).forEach(pos=>{ ctx.fillRect(pos[1]*cellSize,pos[0]*cellSize,cellSize,cellSize); });
+  ctx.fillStyle='#f00';
+  if(state.food) ctx.fillRect(state.food[1]*cellSize,state.food[0]*cellSize,cellSize,cellSize);
+  const scoreEl=container.querySelector('#snake-score'); if(scoreEl) scoreEl.textContent=state.score||0;
+}
+
+/* G4 */
+const RH_COLORS=['#008000','#000080','#800080','#808000','#800000','#008080','#808080','#000000'];
+function renderRushHour_impl(state, container){
+  const canvas=container.querySelector('#rushhour-canvas'); if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // If we have vehicles from the API state, draw them
+  if(state.vehicles && state.vehicles.length>0){
+    ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    const grid_size=state.grid_size||6, cellSize=50;
+    ctx.strokeStyle='#ccc';
+    for(let i=0;i<=grid_size;i++){
+      ctx.beginPath(); ctx.moveTo(i*cellSize,0); ctx.lineTo(i*cellSize,grid_size*cellSize); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0,i*cellSize); ctx.lineTo((grid_size-1)*cellSize,i*cellSize); ctx.stroke();
+    }
+    state.vehicles.forEach(v=>{
+      const ci=v.id.charCodeAt(0)-65;
+      ctx.fillStyle=v.id==='X'?'#f00':RH_COLORS[ci%RH_COLORS.length];
+      const x=v.pos[1]*cellSize, y=v.pos[0]*cellSize;
+      const w=v.orientation==='h'?v.length*cellSize:cellSize, h=v.orientation==='v'?v.length*cellSize:cellSize;
+      ctx.fillRect(x,y,w,h);
+      ctx.fillStyle='#fff'; ctx.font='20px Arial'; ctx.textAlign='center';
+      ctx.fillText(v.id,x+w/2,y+h/2+7);
+    });
+    if(state.exit_pos){
+      ctx.fillStyle='#0f0'; const ex=state.exit_pos[1]*cellSize, ey=state.exit_pos[0]*cellSize;
+      ctx.fillRect(ex,ey,cellSize,cellSize);
+      ctx.fillStyle='#fff'; ctx.font='12px Arial'; ctx.textAlign='center'; ctx.fillText('EXIT',ex+cellSize/2,ey+cellSize/2+4);
+    }
+    const stepsEl=container.querySelector('#rushhour-steps'); if(stepsEl) stepsEl.textContent=state.steps||0;
+  } else {
+    // Fallback: show move log as styled text
+    ctx.fillStyle='#030a0d'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    const log=state._moveLog||[];
+    const total=state._solutionMoves||0;
+    const step=log.length>0?log[log.length-1].step:0;
+    // Progress bar
+    const pct=total>0?step/total:0;
+    ctx.fillStyle='#0d2f3a'; ctx.fillRect(20,20,260,14);
+    ctx.fillStyle='#39ff14'; ctx.shadowColor='#39ff14'; ctx.shadowBlur=6;
+    ctx.fillRect(20,20,260*pct,14); ctx.shadowBlur=0;
+    ctx.fillStyle='#b0dde8'; ctx.font='12px "Share Tech Mono"'; ctx.textAlign='left';
+    ctx.fillText(`Step ${step} / ${total}`,20,50);
+    log.slice(-8).forEach((entry,i)=>{
+      const parts=entry.move.split('_'); // move_X_right
+      const vehicle=parts[1]||'?', dir=parts[2]||'?';
+      ctx.fillStyle=vehicle==='X'?'#ff3c5a':'#39ff14';
+      ctx.fillText(`[${String(entry.step).padStart(2,'0')}] ${vehicle} → ${dir}`,20,72+i*22);
+    });
+    const stepsEl=container.querySelector('#rushhour-steps'); if(stepsEl) stepsEl.textContent=step;
+  }
+}
+
+/* G5 */
+function renderAdaptiveTrafficRacing_impl(state, container){
+  const canvas=container.querySelector('#traffic-canvas'); if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const roadLeft=78,roadWidth=370,roadRight=roadLeft+roadWidth;
+  const roadTop=48,roadBottom=canvas.height-32,laneWidth=roadWidth/3;
+  const playerY=roadBottom-56,playerX=roadLeft+state.lane*laneWidth+laneWidth/2;
+  const sidePanelX=roadRight+22,sidePanelWidth=canvas.width-sidePanelX-18;
+  // Sky
+  const sky=ctx.createLinearGradient(0,0,0,canvas.height);
+  sky.addColorStop(0,'#dbeafe'); sky.addColorStop(0.45,'#bfdbfe'); sky.addColorStop(1,'#a3b18a');
+  ctx.fillStyle=sky; ctx.fillRect(0,0,canvas.width,canvas.height);
+  // Road
+  ctx.fillStyle='#3b3b45'; ctx.fillRect(roadLeft,roadTop,roadWidth,roadBottom-roadTop);
+  ctx.fillStyle='#64748b'; ctx.fillRect(roadLeft-10,roadTop,10,roadBottom-roadTop); ctx.fillRect(roadRight,roadTop,10,roadBottom-roadTop);
+  // Lane lines
+  ctx.strokeStyle='#f8fafc'; ctx.lineWidth=3; ctx.setLineDash([16,14]);
+  for(let l=1;l<3;l++){ const x=roadLeft+l*laneWidth; ctx.beginPath(); ctx.moveTo(x,roadTop); ctx.lineTo(x,roadBottom); ctx.stroke(); }
+  ctx.setLineDash([]);
+  // Lane labels
+  for(let l=0;l<3;l++){
+    const lc=roadLeft+l*laneWidth+laneWidth/2;
+    ctx.fillStyle=l===state.lane?'#ffffff':'rgba(255,255,255,0.6)';
+    ctx.font='bold 14px Arial'; ctx.textAlign='center'; ctx.fillText(`Lane ${l}`,lc,roadTop-12);
+  }
+  // Distance scale
+  ctx.strokeStyle='rgba(15,23,42,0.25)'; ctx.lineWidth=1; ctx.font='12px Arial'; ctx.textAlign='left';
+  for(let d=-8;d<=28;d+=4){
+    const y=playerY-d*9; if(y<roadTop||y>roadBottom) continue;
+    ctx.beginPath(); ctx.moveTo(roadLeft-14,y); ctx.lineTo(roadRight+14,y); ctx.stroke();
+    ctx.fillStyle='#0f172a'; ctx.fillText(`${d>0?'+':''}${d}`,10,y+4);
+  }
+  ctx.fillStyle='rgba(248,113,113,0.18)'; ctx.fillRect(roadLeft,playerY-28,roadWidth,56);
+  // Safe lane highlights
+  (state.lane_gaps||[]).forEach(gap=>{ if(!gap.safe_now) return; ctx.fillStyle='rgba(16,185,129,0.15)'; ctx.fillRect(roadLeft+gap.lane*laneWidth+12,roadTop+8,laneWidth-24,roadBottom-roadTop-16); });
+  // Nearby vehicles
+  (state.nearby_vehicles||[]).forEach(v=>{
+    const y=playerY-v.distance*9; if(y<roadTop-24||y>roadBottom+24) return;
+    const x=roadLeft+v.lane*laneWidth+laneWidth/2;
+    ctx.fillStyle=v.relative_speed>0?'#f97316':'#ef4444'; ctx.fillRect(x-24,y-18,48,36);
+    ctx.fillStyle='#111827'; ctx.fillRect(x-16,y-8,32,12);
+    ctx.fillStyle='#fff'; ctx.font='bold 11px Arial'; ctx.textAlign='center';
+    ctx.fillText(v.relative_speed>0?`+${v.relative_speed}`:`${v.relative_speed}`,x,y-24);
+  });
+  // Player
+  ctx.fillStyle='#0ea5e9'; ctx.fillRect(playerX-26,playerY-24,52,46);
+  ctx.fillStyle='#e2e8f0'; ctx.fillRect(playerX-16,playerY-11,32,16);
+  ctx.fillStyle='#020617'; ctx.fillRect(playerX-22,playerY+18,10,6); ctx.fillRect(playerX+12,playerY+18,10,6);
+  ctx.fillStyle='#082f49'; ctx.font='bold 12px Arial'; ctx.textAlign='center'; ctx.fillText('YOU',playerX,playerY-32);
+  // Progress bar
+  const pr=Math.max(0,Math.min(1,(state.progress||0)/(state.track_length||1)));
+  ctx.fillStyle='#0f172a'; ctx.fillRect(20,16,roadWidth+sidePanelWidth+14,16);
+  ctx.fillStyle='#22c55e'; ctx.fillRect(20,16,(roadWidth+sidePanelWidth+14)*pr,16);
+  ctx.fillStyle='#fff'; ctx.font='bold 11px Arial'; ctx.textAlign='center';
+  ctx.fillText(`Progress ${(state.progress||0).toFixed(1)} / ${(state.track_length||0).toFixed(0)}`,20+(roadWidth+sidePanelWidth+14)/2,28);
+  // Side panel
+  ctx.fillStyle='rgba(15,23,42,0.82)'; ctx.fillRect(sidePanelX,roadTop,sidePanelWidth,roadBottom-roadTop);
+  ctx.fillStyle='#f8fafc'; ctx.font='bold 14px Arial'; ctx.textAlign='left'; ctx.fillText('Telemetry',sidePanelX+12,roadTop+22);
+  const cg=(state.lane_gaps||[]).find(g=>g.lane===state.lane);
+  ctx.font='12px Arial';
+  ctx.fillText(`Lane: ${state.lane}`,sidePanelX+12,roadTop+46);
+  ctx.fillText(`Speed: ${(state.speed||0).toFixed(2)}`,sidePanelX+12,roadTop+64);
+  ctx.fillText(`Step: ${state.step||0} / ${state.max_steps||0}`,sidePanelX+12,roadTop+82);
+  ctx.fillText(`Ahead: ${cg&&cg.ahead!==null?cg.ahead.toFixed(1):'clear'}`,sidePanelX+12,roadTop+100);
+  ctx.fillText(`Behind: ${cg&&cg.behind!==null?cg.behind.toFixed(1):'clear'}`,sidePanelX+12,roadTop+118);
+  ctx.fillText(`Last: ${state.last_action||'keep'}`,sidePanelX+12,roadTop+136);
+  // Sensor window
+  ctx.font='bold 13px Arial'; ctx.fillText('Sensor Window',sidePanelX+12,roadTop+158);
+  const sw=state.sensor_window||[], sgt=roadTop+170, scw=Math.floor((sidePanelWidth-30)/9), sch=18;
+  sw.forEach((ld,li)=>{
+    const ry=sgt+li*(sch+8);
+    ctx.fillStyle=ld.lane===state.lane?'#93c5fd':'#cbd5e1'; ctx.font='bold 11px Arial';
+    ctx.fillText(`L${ld.lane}`,sidePanelX+12,ry+12);
+    (ld.cells||[]).forEach((cell,ci)=>{
+      const x=sidePanelX+34+ci*scw;
+      let fill='#1f2937';
+      if(cell.occupied) fill=cell.relative_speed>0?'#fb923c':'#f87171';
+      else if(cell.occupied_t1||cell.occupied_t2) fill='#475569';
+      ctx.fillStyle=fill; ctx.fillRect(x,ry,scw-2,sch);
+      if(li===0){ ctx.fillStyle='#cbd5e1'; ctx.font='10px Arial'; ctx.textAlign='center'; ctx.fillText(`${cell.offset}`,x+(scw-2)/2,ry-4); }
+    });
+  });
+  const sd=container.querySelector('#traffic-stats');
+  if(sd) sd.innerHTML=`Lane:<strong>${state.lane}</strong> Speed:<strong>${(state.speed||0).toFixed(2)}</strong> Progress:<strong>${(state.progress||0).toFixed(1)}/${(state.track_length||0).toFixed(0)}</strong> Step:<strong>${state.step||0}/${state.max_steps||0}</strong>`;
+}
+
+/* G6-G9 */
+function renderMaze_impl(state, container){
+  const canvas=container.querySelector('#maze-canvas'); if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  const grid=state.grid||[];
+  const playerPos=state.player_pos||[0,0];
+  const height=grid.length, width=height>0?(Array.isArray(grid[0])?grid[0].length:0):0;
+  if(!width||!height){ ctx.fillStyle='#030a0d'; ctx.fillRect(0,0,canvas.width,canvas.height); return; }
+  const cellSize=Math.min(500/width,500/height);
+  canvas.width=width*cellSize; canvas.height=height*cellSize;
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  for(let y=0;y<height;y++){
+    const row=grid[y];
+    for(let x=0;x<width;x++){
+      const cell=Array.isArray(row)?row[x]:row[x];
+      let color='#000';
+      if(cell==='.')       color='#fff';
+      else if(cell==='S')  color='#0f0';
+      else if(cell==='E')  color='#ff0';
+      else if(cell==='L')  color='#f00';
+      else if(cell==='K')  color='#f0f';
+      else if(cell==='D')  color='#ffa500';
+      else if(cell==='?')  color='#666';
+      ctx.fillStyle=color; ctx.fillRect(x*cellSize,y*cellSize,cellSize,cellSize);
+      ctx.strokeStyle='#333'; ctx.lineWidth=1; ctx.strokeRect(x*cellSize,y*cellSize,cellSize,cellSize);
+    }
+  }
+  // Player dot
+  ctx.fillStyle='#00f';
+  ctx.beginPath();
+  ctx.arc(playerPos[0]*cellSize+cellSize/2, playerPos[1]*cellSize+cellSize/2, cellSize/3, 0, 2*Math.PI);
+  ctx.fill();
+  const strip=container.querySelector('#maze-info-strip');
+  if(strip) strip.innerHTML=`Pos:<strong>(${playerPos[0]},${playerPos[1]})</strong> Steps:<strong>${state.steps||0}</strong> Key:<strong>${state.has_key?'✓':'—'}</strong>`;
+}
+
+/* G10 */
+function renderMoonLander_impl(state, container){
+  const canvas=container.querySelector('#game-canvas'); if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  const ground_y=canvas.height-48;
+  const lp=state.landing_pad||{x1:40,x2:60};
+  const wb=state.world_bounds||{width:100,height:80};
+  const altitude=state.position?.altitude||0;
+  const shipX=(state.position?.x||0)/wb.width*canvas.width;
+  const shipY=ground_y-(altitude/wb.height*(ground_y-24));
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle='#001122'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle='#666'; ctx.fillRect(0,ground_y,canvas.width,canvas.height-ground_y);
+  ctx.fillStyle='#00ff99';
+  const padW=(lp.x2-lp.x1)/wb.width*canvas.width, padX=lp.x1/wb.width*canvas.width;
+  ctx.fillRect(padX,ground_y,padW,10);
+  // Ship
+  const tilt=state.tilt||0;
+  ctx.save(); ctx.translate(shipX,shipY); ctx.rotate(-tilt);
+  ctx.fillStyle='#fff';
+  ctx.beginPath(); ctx.moveTo(0,-12); ctx.lineTo(-10,10); ctx.lineTo(10,10); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='#8bd3ff';
+  ctx.beginPath(); ctx.moveTo(-8,10); ctx.lineTo(-12,16); ctx.moveTo(8,10); ctx.lineTo(12,16); ctx.stroke();
+  ctx.restore();
+  ctx.strokeStyle='#f00';
+  ctx.beginPath(); ctx.moveTo(shipX,shipY); ctx.lineTo(shipX+(state.velocity?.vx||0)*18,shipY-(state.velocity?.vy||0)*18); ctx.stroke();
+  ctx.fillStyle='#fff'; let seed=12345;
+  for(let i=0;i<20;i++){
+    seed=(seed*9301+49297)%233280; const x=(seed/233280)*canvas.width;
+    seed=(seed*9301+49297)%233280; const y=(seed/233280)*ground_y;
+    ctx.fillRect(x,y,1,1);
+  }
+  const sd=container.querySelector('#game-stats');
+  if(sd) sd.innerHTML=`Fuel:<strong>${(state.fuel||0).toFixed(1)}</strong> VX:<strong>${(state.velocity?.vx||0).toFixed(2)}</strong> VY:<strong>${(state.velocity?.vy||0).toFixed(2)}</strong> Tilt:<strong>${(state.tilt||0).toFixed(2)}</strong>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TABS & VIEWPORT
+═══════════════════════════════════════════════════════════════ */
+function ensureTab(id){
+  if(document.querySelector(`[data-tab="${id}"]`)) return;
+  const tabs=document.getElementById('tabs');
+  const tab=document.createElement('div'); tab.className='tab'; tab.dataset.tab=id;
+  tab.innerHTML=`<span class="tab-pip"></span>${GAMES[id].icon} G${id}`;
+  tab.onclick=()=>switchTab(id); tabs.appendChild(tab);
+}
+
+function switchTab(tab){
+  currentTab=String(tab);
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  const t=document.querySelector(`[data-tab="${tab}"]`); if(t) t.classList.add('active');
+  if(tab==='overview') renderOverview(); else renderGameTab(tab);
+}
+
+function renderGameTab(id){
+  const vp=document.getElementById('viewport');
+  const g=gs[id], meta=GAMES[id]; if(!g||!meta) return;
+  const gid=Number(id);
+  const sc=g.status==='running'?'var(--neon)':g.status==='win'?'var(--neon2)':g.status==='loss'?'var(--neon3)':'var(--neon5)';
+
+  // Build correct canvas shell per game
+  let canvasHTML;
+  if(gid===1){
+    canvasHTML=`<div class="canvas-shell live" style="padding:12px;background:#040c10;">
+      <div id="game-board"></div></div>
+      <div class="game-stats-strip" id="ttt-stats-strip">Waiting…</div>`;
+  } else if(gid===2){
+    canvasHTML=`<div class="canvas-shell live"><canvas id="car-racing-canvas" width="600" height="400"></canvas></div>
+      <div class="game-stats-strip" id="car-stats-strip">Waiting…</div>`;
+  } else if(gid===3){
+    canvasHTML=buildManualSnakeHTML();
+  } else if(gid===4){
+    canvasHTML=`<div class="canvas-shell live"><canvas id="rushhour-canvas" width="300" height="300"></canvas></div>
+      <div class="game-stats-strip">Steps: <strong id="rushhour-steps">—</strong></div>`;
+  } else if(gid===5){
+    canvasHTML=`<div class="canvas-shell live"><canvas id="traffic-canvas" width="640" height="480"></canvas></div>
+      <div class="game-stats-strip" id="traffic-stats">Waiting…</div>`;
+  } else if(gid>=6&&gid<=9){
+    canvasHTML=`<div class="canvas-shell live"><canvas id="maze-canvas" width="500" height="500"></canvas></div>
+      <div class="game-stats-strip" id="maze-info-strip">Waiting…</div>`;
+  } else if(gid===10){
+    canvasHTML=buildManualLanderHTML();
+  } else {
+    canvasHTML=`<div style="color:var(--tdim);font-size:.7rem">No renderer</div>`;
+  }
+
+  vp.innerHTML=`<div class="gview" id="gview-${id}">
+    <div class="game-bar">
+      <div class="chip">${meta.icon} ${meta.name}</div>
+      <div class="chip">GAME <strong>#${g.gameNum||'—'}</strong></div>
+      <div class="chip">SESSION <strong>${g.session||'—'}</strong></div>
+      <div class="chip" style="border-color:${sc}40">STATUS <strong style="color:${sc}">${g.status.toUpperCase()}</strong></div>
+      <div class="chip">W<strong>${g.wins}</strong> L<strong style="color:var(--neon3)">${g.losses}</strong> T<strong style="color:var(--neon5)">${g.ties}</strong></div>
+      <div class="chip">SCORE <strong>${g.score}</strong></div>
+    </div>
+    ${canvasHTML}
+  </div>`;
+
+  // Draw immediately with whatever state we have
+  redrawCanvas(id);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   MANUAL PLAY — Snake (G3) and Moon Lander (G10)
+   Direct browser → API calls. Completely independent of main.py.
+   Rate limit: 1 call/s per game → enforced by a cooldown lock.
+═══════════════════════════════════════════════════════════════ */
+// Per-game manual session state
+const manual = {
+  3:  {sid:null, status:'idle', score:0, wins:0, losses:0, totalScore:0, cooldown:false, pollTimer:null},
+  10: {sid:null, status:'idle', score:0, wins:0, losses:0, totalScore:0, cooldown:false, pollTimer:null},
+};
+
+// Snake: ArrowUp/Down/Left/Right → up/down/left/right
+// Lander: mapping below
+const SNAKE_KEYS  = {ArrowUp:'up', ArrowDown:'down', ArrowLeft:'left', ArrowRight:'right',
+                     KeyW:'up',    KeyS:'down',       KeyA:'left',      KeyD:'right'};
+const LANDER_KEYS = {ArrowLeft:'left', ArrowRight:'right',
+                     ArrowUp:'main',   Space:'idle',
+                     KeyZ:'main_left', KeyX:'main_right',
+                     KeyS:'stabilize', KeyI:'idle'};
+
+// ── HTML builders ─────────────────────────────────────────────
+
+function buildManualSnakeHTML(){
+  return `<div class="manual-wrap" id="manual-3">
+    <div class="manual-section-title">◈ SNAKE — MANUAL PLAY</div>
+    <div class="m-btn-row">
+      <button class="m-btn m-btn-new" onclick="manualNewGame(3)" id="m3-new">▶ NEW GAME</button>
+      <button class="m-btn m-btn-stop" onclick="manualStop(3)" id="m3-stop" disabled>■ STOP</button>
+      <span class="cooldown-dot" id="m3-cd" title="API rate limit"></span>
+    </div>
+    <div class="m-status" id="m3-status"><span class="s-idle">IDLE — press NEW GAME</span></div>
+    <div style="display:flex;gap:20px;align-items:flex-start;">
+      <div class="canvas-shell live" style="flex-shrink:0;">
+        <canvas id="snake-canvas" width="400" height="400"></canvas>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div>
+          <div class="m-keylabel" style="text-align:center;margin-bottom:8px;">SCORE</div>
+          <div class="m-score" id="m3-score">0</div>
+          <div style="font-size:.58rem;color:var(--tdim);margin-top:4px;">target: 40 segments</div>
+        </div>
+        <div>
+          <div class="m-keylabel" style="text-align:center;margin-bottom:10px;">CONTROLS</div>
+          <div class="dpad">
+            <div></div>
+            <div class="dpad-center" style="grid-column:2;grid-row:1;">
+              <div class="key-btn" id="kb-up" onclick="manualAct(3,'up')" data-action="up">
+                <span class="key-glyph">↑</span><span>UP / W</span>
+              </div>
+            </div>
+            <div></div>
+            <div style="grid-column:1;grid-row:2;">
+              <div class="key-btn" id="kb-left" onclick="manualAct(3,'left')" data-action="left">
+                <span class="key-glyph">←</span><span>LEFT / A</span>
+              </div>
+            </div>
+            <div style="grid-column:2;grid-row:2;">
+              <div class="key-btn" style="opacity:.2;cursor:default;">
+                <span class="key-glyph">◈</span>
+              </div>
+            </div>
+            <div style="grid-column:3;grid-row:2;">
+              <div class="key-btn" id="kb-right" onclick="manualAct(3,'right')" data-action="right">
+                <span class="key-glyph">→</span><span>RIGHT / D</span>
+              </div>
+            </div>
+            <div></div>
+            <div style="grid-column:2;grid-row:3;">
+              <div class="key-btn" id="kb-down" onclick="manualAct(3,'down')" data-action="down">
+                <span class="key-glyph">↓</span><span>DOWN / S</span>
+              </div>
+            </div>
+            <div></div>
+          </div>
+        </div>
+        <div style="font-size:.58rem;color:var(--tdim);line-height:1.8;">
+          W:<strong id="m3-wins" style="color:var(--neon2)">0</strong> &nbsp;
+          L:<strong id="m3-losses" style="color:var(--neon3)">0</strong> &nbsp;
+          +<strong id="m3-tscore" style="color:var(--neon4)">0</strong>pts
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildManualLanderHTML(){
+  const btns = [
+    {id:'ml-left',    action:'left',      glyph:'←',     label:'LEFT',      key:'←'},
+    {id:'ml-main',    action:'main',      glyph:'🔥',    label:'MAIN',      key:'↑'},
+    {id:'ml-right',   action:'right',     glyph:'→',     label:'RIGHT',     key:'→'},
+    {id:'ml-mleft',   action:'main_left', glyph:'↙🔥',   label:'M+LEFT',    key:'Z'},
+    {id:'ml-idle',    action:'idle',      glyph:'○',     label:'IDLE',      key:'SPC'},
+    {id:'ml-mright',  action:'main_right',glyph:'🔥↘',   label:'M+RIGHT',   key:'X'},
+    {id:'ml-stab',    action:'stabilize', glyph:'⊕',     label:'STABILIZE', key:'S'},
+  ];
+  const btnHTML = btns.map(b=>`
+    <div class="key-btn" id="${b.id}" onclick="manualAct(10,'${b.action}')" data-action="${b.action}">
+      <span class="key-glyph">${b.glyph}</span>
+      <span>${b.label}</span>
+      <span style="font-size:.45rem;color:var(--tdim);margin-top:1px;">[${b.key}]</span>
+    </div>`).join('');
+
+  return `<div class="manual-wrap" id="manual-10">
+    <div class="manual-section-title">◭ MOON LANDER — MANUAL PLAY</div>
+    <div class="m-btn-row">
+      <button class="m-btn m-btn-new" onclick="manualNewGame(10)" id="m10-new">▶ NEW GAME</button>
+      <button class="m-btn m-btn-stop" onclick="manualStop(10)" id="m10-stop" disabled>■ STOP</button>
+      <span class="cooldown-dot" id="m10-cd" title="API rate limit"></span>
+    </div>
+    <div class="m-status" id="m10-status"><span class="s-idle">IDLE — press NEW GAME</span></div>
+    <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;justify-content:center;">
+      <div class="canvas-shell live" style="flex-shrink:0;">
+        <canvas id="game-canvas" width="520" height="340"></canvas>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div id="game-stats" style="font-size:.66rem;color:var(--tdim);line-height:1.9;min-width:150px;">
+          Fuel: — &nbsp; VX: — &nbsp; VY: — &nbsp; Tilt: —
+        </div>
+        <div>
+          <div class="m-keylabel" style="margin-bottom:10px;text-align:center;">THRUSTERS</div>
+          <div class="lander-grid">${btnHTML}</div>
+        </div>
+        <div style="font-size:.58rem;color:var(--tdim);line-height:1.8;">
+          W:<strong id="m10-wins" style="color:var(--neon2)">0</strong> &nbsp;
+          L:<strong id="m10-losses" style="color:var(--neon3)">0</strong> &nbsp;
+          +<strong id="m10-tscore" style="color:var(--neon4)">0</strong>pts
+        </div>
+        <div style="font-size:.56rem;color:var(--tdim);line-height:1.7;max-width:180px;">
+          ↑ Main thrust<br>← → Rotate<br>Z/X Main+Rotate<br>SPC Idle<br>S Stabilize
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function setCooldown(gid, busy){
+  const m = manual[gid];
+  m.cooldown = busy;
+  const dot = document.getElementById(`m${gid}-cd`);
+  if(dot) dot.className = 'cooldown-dot' + (busy ? ' busy' : '');
+}
+
+async function rateLimited(gid, fn){
+  if(manual[gid].cooldown) return null; // drop — still cooling down
+  setCooldown(gid, true);
+  try { return await fn(); }
+  finally {
+    // Hold cooldown for 1050ms to respect 1 req/s limit
+    setTimeout(() => setCooldown(gid, false), 1050);
+  }
+}
+
+// ── New game ──────────────────────────────────────────────────
+
+async function manualNewGame(gid){
+  const m = manual[gid];
+  // Python manages the session lifecycle automatically in its own loop.
+  // We just switch the UI to "active" mode and start accepting key presses.
+  // The current session is whatever Python last started (tracked via Session N log lines).
+  if(m.pollTimer){ clearInterval(m.pollTimer); m.pollTimer=null; }
+  m.status = 'running';
+  m.sid = 'python-managed'; // sentinel — Python owns the session
+  setManualStatus(gid,'<span class="s-run">▶ PLAYING — use keyboard or buttons</span>');
+  document.getElementById(`m${gid}-new`).disabled  = true;
+  document.getElementById(`m${gid}-stop`).disabled = false;
+  clog(null, `[G${gid}] Manual mode active — actions sent to Python via act.php`, 'new');
+}
+
+// ── Stop game ─────────────────────────────────────────────────
+
+async function manualStop(gid){
+  const m = manual[gid];
+  if(m.pollTimer){ clearInterval(m.pollTimer); m.pollTimer=null; }
+  // Python manages the session — we just deactivate manual input
+  m.status = 'idle'; m.sid = null;
+  setManualStatus(gid, '<span class="s-idle">MANUAL MODE OFF — AI resumes</span>');
+  document.getElementById(`m${gid}-new`).disabled  = false;
+  document.getElementById(`m${gid}-stop`).disabled = true;
+  clog(null, `[G${gid}] Manual mode off — AI back in control`, 'sys');
+}
+
+// ── Act ───────────────────────────────────────────────────────
+
+async function manualAct(gid, action){
+  const m = manual[gid];
+  if(!m.sid || m.status !== 'running') return;
+
+  // Visual feedback on key button
+  flashKey(gid, action);
+
+  // Enforce client-side rate limit (1 req/s) to avoid hammering
+  if(m.cooldown) return;
+  setCooldown(gid, true);
+  setTimeout(() => setCooldown(gid, false), 1050);
+
+  try {
+    // Send action to act.php which writes it to the Python command file.
+    // Python picks it up on its next step instead of using the AI decision.
+    const r = await fetch('act.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({game: gid, action})
+    });
+    const resp = await r.json();
+    if(!resp.ok){
+      clog(null, `[G${gid}] act.php error: ${resp.error}`, 'err');
+    }
+    // Canvas will update when Python emits the next STATE_JSON via SSE stream.
+    // No direct API call needed — Python handles it.
+  } catch(e) {
+    clog(null, `[G${gid}] Manual act failed: ${e.message}`, 'err');
+  }
+}
+
+// ── Poll state (no-op — Python streams STATE_JSON via SSE) ────
+// Canvas updates happen automatically in parseLine() whenever Python
+// emits a STATE_JSON line. No extra polling needed.
+async function manualPollState(gid){ /* intentionally empty */ }
+
+// ── Handle end ────────────────────────────────────────────────
+
+async function manualHandleEnd(gid, status){
+  const m = manual[gid];
+  if(m.pollTimer){ clearInterval(m.pollTimer); m.pollTimer=null; }
+  m.status = 'done'; m.sid = null;
+
+  const won = status === 'win';
+  const lost = status === 'lose' || status === 'lose';
+  // Score contribution (API doc points)
+  const pts = gid===3 ? (won?3:lost?-1:0) : (won?10:lost?-2:0);
+  if(won){ m.wins++; m.totalScore += pts; }
+  else if(lost){ m.losses++; m.totalScore += pts; }
+
+  // Update sidebar counters
+  const we = document.getElementById(`m${gid}-wins`);
+  const le = document.getElementById(`m${gid}-losses`);
+  const te = document.getElementById(`m${gid}-tscore`);
+  if(we) we.textContent = m.wins;
+  if(le) le.textContent = m.losses;
+  if(te) te.textContent = m.totalScore;
+
+  const label = won ? 'WIN' : lost ? 'LOSE' : status.toUpperCase();
+  const cls   = won ? 's-win' : lost ? 's-lose' : 's-idle';
+  setManualStatus(gid, `<span class="${cls}">${label} — Score: ${m.score} — press NEW GAME</span>`);
+  document.getElementById(`m${gid}-new`).disabled  = false;
+  document.getElementById(`m${gid}-stop`).disabled = true;
+
+  toast(`${gid===3?'Snake':'Lander'}: ${label}! +${pts}pts`, won?'':'warn');
+}
+
+// ── Canvas renderers ──────────────────────────────────────────
+
+function renderSnakeFromState(state){
+  const container = document.getElementById('manual-3');
+  if(!container) return;
+  // Merge into liveState so the official renderer works
+  Object.assign(liveState[3], state);
+  renderSnake_impl(liveState[3], container);
+}
+
+function renderLanderFromState(state){
+  const container = document.getElementById('manual-10');
+  if(!container) return;
+  Object.assign(liveState[10], state);
+  renderMoonLander_impl(liveState[10], container);
+}
+
+// ── Key flash animation ───────────────────────────────────────
+
+function flashKey(gid, action){
+  // Map action → element id
+  const idMap3  = {up:'kb-up', down:'kb-down', left:'kb-left', right:'kb-right'};
+  const idMap10 = {left:'ml-left', right:'ml-right', main:'ml-main',
+                   main_left:'ml-mleft', main_right:'ml-mright',
+                   idle:'ml-idle', stabilize:'ml-stab'};
+  const map = gid===3 ? idMap3 : idMap10;
+  const el = document.getElementById(map[action]);
+  if(!el) return;
+  el.classList.add('pressed');
+  setTimeout(() => el.classList.remove('pressed'), 220);
+}
+
+// ── Status helper ─────────────────────────────────────────────
+function setManualStatus(gid, html){
+  const el = document.getElementById(`m${gid}-status`);
+  if(el) el.innerHTML = html;
+}
+
+// ── Keyboard handler ─────────────────────────────────────────
+// Attached to document — only fires when the matching manual tab is active
+
+function initManualKeyboard(){
+  document.addEventListener('keydown', e => {
+    // Don't intercept if user is typing in console input
+    if(e.target && e.target.tagName === 'INPUT') return;
+
+    if(currentTab === '3'){
+      const action = SNAKE_KEYS[e.code];
+      if(action){ e.preventDefault(); manualAct(3, action); }
+    }
+    if(currentTab === '10'){
+      const action = LANDER_KEYS[e.code] || LANDER_KEYS[e.key];
+      if(action){ e.preventDefault(); manualAct(10, action); }
+    }
+  });
+}
+
+initManualKeyboard();
+
+/* ═══════════════════════════════════════════════════════════════
+   OVERVIEW
+═══════════════════════════════════════════════════════════════ */
+function renderOverview(){
+  const vp=document.getElementById('viewport');
+  const active=Object.entries(gs).filter(([,g])=>g.status!=='idle'||g.wins+g.losses+g.ties>0);
+  if(active.length===0){
+    vp.innerHTML=`<div class="vp-empty"><span class="ascii">⬡</span><p>LAUNCH MAIN.PY TO BEGIN</p><p style="margin-top:8px;font-size:.58rem;color:var(--border);">awaiting signal...</p></div>`;
+    return;
+  }
+  let h='<div class="overview-grid">';
+  for(const [id,g] of Object.entries(gs)){
+    if(g.status==='idle'&&g.wins+g.losses+g.ties===0) continue;
+    const meta=GAMES[id], total=g.wins+g.losses+g.ties;
+    const wr=total>0?Math.round(g.wins/total*100):0;
+    const bc=g.status==='running'?'var(--neon)':g.status==='win'?'var(--neon2)':g.status==='loss'?'var(--neon3)':'var(--neon5)';
+    h+=`<div class="ov-card" onclick="switchTab('${id}')">
+      <div class="ov-icon">${meta.icon}</div>
+      <div class="ov-name">${meta.name}</div>
+      <div style="font-size:.56rem;color:${bc};margin-top:3px;font-family:var(--display);letter-spacing:1px;">${g.status.toUpperCase()}</div>
+      <div class="ov-nums"><span style="color:var(--neon2)">W:${g.wins}</span><span style="color:var(--neon3)">L:${g.losses}</span><span style="color:var(--neon5)">T:${g.ties}</span><span style="color:var(--neon4)">${g.score>0?'+':''}${g.score}</span></div>
+      <div class="ov-bar"><div class="ov-fill" style="width:${wr}%"></div></div>
+    </div>`;
+  }
+  vp.innerHTML=h+'</div>';
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SSE + STATS + TOAST
+═══════════════════════════════════════════════════════════════ */
+function launchScript(){
+  if(running) return; running=true;
+  document.getElementById('btn-launch').disabled=true;
+  document.getElementById('btn-kill').disabled=false;
+  setConnStatus('connecting');
+  clog(null,'Connecting to stream.php → launching main.py… (zero extra API calls)','sys');
+  sse=new EventSource('stream.php');
+  sse.addEventListener('start',e=>{ const d=JSON.parse(e.data); setConnStatus('live'); document.getElementById('pid-badge').textContent=`PID ${d.pid}`; clog(null,`main.py launched — PID ${d.pid}`,'new'); toast(`main.py started (PID ${d.pid})`); });
+  sse.addEventListener('log',e=>{ parseLine(JSON.parse(e.data).line); });
+  sse.addEventListener('exit',e=>{ const d=JSON.parse(e.data); clog(null,`main.py exited — code ${d.code}`,'sys'); setConnStatus('offline'); running=false; document.getElementById('btn-launch').disabled=false; document.getElementById('btn-kill').disabled=true; toast(`Process exited (code ${d.code})`,d.code!==0?'err':''); sse.close(); });
+  sse.addEventListener('error',()=>{ if(!running) return; clog(null,'SSE error','err'); setConnStatus('offline'); });
+  sse.addEventListener('ping',()=>{});
+}
+function killScript(){
+  if(sse) sse.close();
+  fetch('stream.php?action=stop').then(()=>{ clog(null,'SIGTERM sent','err'); setConnStatus('offline'); running=false; document.getElementById('btn-launch').disabled=false; document.getElementById('btn-kill').disabled=true; for(const id of Object.keys(GAMES)) if(gs[id].status==='running'){gs[id].status='idle';updateCard(id);} toast('Process killed','warn'); });
+}
+function setConnStatus(s){ const dot=document.getElementById('conn-dot'),lbl=document.getElementById('conn-lbl'); if(s==='live'){dot.className='dot live';lbl.textContent='LIVE';}else if(s==='connecting'){dot.className='dot';lbl.textContent='CONNECTING';}else{dot.className='dot';lbl.textContent='OFFLINE';} }
+function updateStats(){
+  anim('s-wins',totals.wins); anim('s-loss',totals.losses); anim('s-ties',totals.ties); anim('s-games',totals.games); anim('s-score',totals.score);
+  const d=totals.wins+totals.losses+totals.ties; const wr=d>0?Math.round(totals.wins/d*100):0;
+  document.getElementById('wr-pct').textContent=wr+'%'; document.getElementById('wr-fill').style.width=wr+'%';
+  updatePGT();
+}
+function anim(id,val){ const el=document.getElementById(id); el.textContent=val.toLocaleString(); el.style.animation='none'; void el.offsetWidth; el.style.animation='bumpin .25s ease'; }
+function updatePGT(){
+  const el=document.getElementById('pgt-body'); let h='';
+  for(const [id,g] of Object.entries(gs)){ if(g.wins+g.losses+g.ties===0) continue; const meta=GAMES[id]; h+=`<div class="pgt-row"><div class="pgt-name">${meta.icon} ${meta.name}</div><div class="pw">${g.wins}</div><div class="pl">${g.losses}</div><div class="pt">${g.ties}</div><div class="ps">${g.score}</div></div>`; }
+  el.innerHTML=h||`<div style="color:var(--tdim);font-size:.65rem;padding:6px 0;">No data yet</div>`;
+}
+function updateSparkline(){
+  const c=document.getElementById('spark'); const dpr=window.devicePixelRatio||1,W=c.offsetWidth,H=c.offsetHeight||56;
+  c.width=W*dpr; c.height=H*dpr; const ctx=c.getContext('2d'); ctx.scale(dpr,dpr); ctx.clearRect(0,0,W,H);
+  const hist=scoreHistory; if(hist.length<1) return;
+  const vals=hist.map(h=>h.pts); const mx=Math.max(...vals,1),mn=Math.min(...vals,0),rng=mx-mn||1;
+  const bw=Math.max(2,W/hist.length-1);
+  hist.forEach((h,i)=>{ const x=i*(bw+1),norm=(h.pts-mn)/rng,bh=Math.max(2,norm*(H-4)),y=H-bh; ctx.fillStyle=h.pts>=0?'#39ff14':'#ff3c5a'; ctx.shadowColor=ctx.fillStyle; ctx.shadowBlur=4; ctx.fillRect(x,y,bw,bh); });
+}
+function toast(msg,type=''){ const w=document.getElementById('toast-wrap'); const el=document.createElement('div'); el.className='toast '+type; el.textContent=msg; w.appendChild(el); setTimeout(()=>el.remove(),3200); }
+</script>
+</body>
+</html>
