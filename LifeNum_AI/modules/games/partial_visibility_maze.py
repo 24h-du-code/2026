@@ -203,8 +203,6 @@ def run():
         net = results["win"] * 7 - results["lose"]
         tprint(f"Totals — W:{results['win']} L:{results['lose']} S:{results['stopped']} | Score: {net:+d}")
 
-        time.sleep(1)
-
 
 if __name__ == "__main__":
     run()
